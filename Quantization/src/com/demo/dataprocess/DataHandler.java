@@ -1,5 +1,8 @@
 package com.demo.dataprocess;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -32,16 +35,15 @@ public class DataHandler {
 	    // set time zone
 	    sdf.setTimeZone(TimeZone.getTimeZone(AppEntrance.gApp.gTimeZone));
 	    // initialization table
-	    bTableExist=initTable();
 	}
 	
 	/**
 	 * initialize the table
 	 * @return
 	 */
-	public boolean initTable() {
+	public void initTable() {
 		// get table name
-		sTableName = AppEntrance.gApp.gRelatedSymbol.toLowerCase() + "_" + 
+		sTableName = AppEntrance.gApp.gRelatedSymbol.toLowerCase().replace("/", "-") + "_" + 
 					AppEntrance.gApp.gTimeInterval.getClass().getSimpleName().toLowerCase();
 		
 		// create table
@@ -62,7 +64,7 @@ public class DataHandler {
 			    		"  PRIMARY KEY (`snapshotdate`,`timezone`)" + 
 			    		") ENGINE=myisam DEFAULT CHARSET=UTF8;";
 	    DBHelper.init();
-	    return DBHelper.executeUpdate(sCreateTable);
+	    bTableExist = DBHelper.executeUpdate(sCreateTable);
 	}
 	
 	/**
@@ -125,4 +127,57 @@ public class DataHandler {
 		return true;
 	}
 
+	private FileWriter fileWriter = null; 
+	/**
+	 * storage bins data into .csv files
+	 * @param bin
+	 * @return
+	 */
+	public boolean storageBinDataAsCSV(Bin bin) {
+		try {
+			if(sTableName==null || sTableName.length()<=0)
+				sTableName = AppEntrance.gApp.gRelatedSymbol.toLowerCase().replace("/", "-") + "_" + 
+							AppEntrance.gApp.gTimeInterval.getClass().getSimpleName().toLowerCase();
+			
+        	File folder = new File(AppEntrance.gApp.csvSavePath);
+        	if(!folder.exists()) folder.mkdirs();
+        	if(!folder.exists()) return false;
+        	
+			if(fileWriter == null) {
+				fileWriter = new FileWriter(folder.getAbsolutePath() + "/" + sTableName + ".csv", true);
+				fileWriter.write("snapshotdate,timezone,opentime,closetime,openbid,highbid,lowbid,closebid,openask,highask,lowask,closeask,volume" + "\r\n");
+			}
+			
+			String binStr = sdf.format(bin.getSnapshotdate().getTime()) +","+AppEntrance.gApp.gTimeZone+","
+							+ sdf.format(bin.getOpenTime().getTime()) +","+ sdf.format(bin.getCloseTime().getTime()) +","
+							+ bin.getOpenBid()+","+bin.getHighBid()+","+bin.getLowBid()+","+bin.getCloseBid()+","
+							+ bin.getOpenAsk()+","+bin.getHighAsk()+","+bin.getLowAsk()+","+bin.getCloseAsk()+","
+							+ bin.getVolume();
+			fileWriter.write(binStr + "\r\n");
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * close file writer
+	 */
+	public boolean finishFileWriter() {
+		try {
+			if(fileWriter!=null) {
+				fileWriter.flush();
+				fileWriter.close();
+				fileWriter = null;
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
 }

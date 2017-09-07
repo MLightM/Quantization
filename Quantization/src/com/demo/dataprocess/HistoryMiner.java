@@ -303,6 +303,7 @@ public class HistoryMiner implements IGenericMessageListener, IStatusMessageList
 	    SortedSet<UTCDate> candle = new TreeSet<UTCDate>(historicalRates.keySet());
 
 	    DataHandler dataHandler = new DataHandler();
+	    dataHandler.initTable();
 	    if (!dataHandler.bTableExist) {
 		    dataHandler.finishDataPorcess();
 		    return false;
@@ -331,10 +332,47 @@ public class HistoryMiner implements IGenericMessageListener, IStatusMessageList
 	        		candleData.getAskOpen(), candleData.getAskHigh(), candleData.getAskLow(), candleData.getAskClose(), 
 	        		candleData.getTickVolume());
 	        if(!dataHandler.storageBinData(bin))
-	        	break;
+	        	return false;
 	    }
 	    dataHandler.finishDataPorcess();
 	    return true;
+	}
+	
+	/**
+	 * process the bins data into .csv files
+	 * @return
+	 */
+	public boolean dataProcessAsCSV() {
+		// get the keys for the historicalRates table into a sorted list
+	    SortedSet<UTCDate> candle = new TreeSet<UTCDate>(historicalRates.keySet());
+
+	    DataHandler dataHandler = new DataHandler();
+	    Bin bin = null;
+	    Calendar snapshotdate = null;
+	    Calendar openTime = null;
+	    Calendar closeTime = null;
+	    for(UTCDate date : candle) {
+	    	// create a single instance of the snapshot
+	        MarketDataSnapshot candleData;
+	        synchronized(historicalRates) {
+	        	candleData = historicalRates.get(date);
+	        }
+	        
+	        snapshotdate = new GregorianCalendar();
+	        snapshotdate.setTime(candleData.getDate().toDate());
+	        openTime = new GregorianCalendar();
+	        openTime.setTime(candleData.getOpenTimestamp().toDate());
+	        closeTime = new GregorianCalendar();
+	        closeTime.setTime(candleData.getCloseTimestamp().toDate());
+	        
+	        bin = new Bin(snapshotdate, AppEntrance.gApp.gTimeZone, openTime, closeTime, 
+	        		candleData.getBidOpen(), candleData.getBidHigh(), candleData.getBidLow(), candleData.getBidClose(), 
+	        		candleData.getAskOpen(), candleData.getAskHigh(), candleData.getAskLow(), candleData.getAskClose(), 
+	        		candleData.getTickVolume());
+	        if(!dataHandler.storageBinDataAsCSV(bin))
+	        	return false;
+	    }
+	    return dataHandler.finishFileWriter();
 	}
 	
 }

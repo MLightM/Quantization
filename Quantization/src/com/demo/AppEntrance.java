@@ -23,6 +23,9 @@ public class AppEntrance {
 	public final String gUsername = "rkichenama"; // FXCM username
 	public final String gPassword = "1311016"; // FXCM password
 	public final String gTerminal = "Demo"; // FXCM terminal
+	
+	public final boolean useCsv = false; // use csv files save data
+	public final String csvSavePath = "./csv"; // save path
 
 	public static void main(String[] args) {
 		gApp = new AppEntrance();
@@ -48,10 +51,18 @@ public class AppEntrance {
 			// display nore that the history display is delayed
 			miner.getOutput().println("\t\tGet history data finish.");
 			// storage data
-			if(miner.dataProcess()) {
-				miner.getOutput().println("\t\tStorage history data success.");
+			if(useCsv) {
+				if(miner.dataProcessAsCSV()) {
+					miner.getOutput().println("\t\tStorage history data success.");
+				} else {
+					miner.getOutput().println("\t\tStorage history data failed.");
+				}
 			} else {
-				miner.getOutput().println("\t\tStorage history data failed.");
+				if(miner.dataProcess()) {
+					miner.getOutput().println("\t\tStorage history data success.");
+				} else {
+					miner.getOutput().println("\t\tStorage history data failed.");
+				}
 			}
 			// log out of the api
 			miner.logout();
